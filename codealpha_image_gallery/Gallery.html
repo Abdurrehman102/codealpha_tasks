@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethereal Gallery</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Raleway:wght@200;300;400&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Raleway', sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        #cursor {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 215, 0, 0.8);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transition: all 0.15s ease;
+            mix-blend-mode: difference;
+        }
+        
+        #cursor-glow {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
+            position: fixed;
+            pointer-events: none;
+            z-index: 9998;
+            transition: all 0.3s ease;
+        }
+        
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(255, 215, 0, 0.6);
+            border-radius: 50%;
+            animation: float linear infinite;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 80px 40px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        h1 {
+            text-align: center;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 6rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 12px;
+            font-weight: 300;
+            animation: shimmer 3s ease-in-out infinite;
+            text-shadow: 0 0 80px rgba(255, 215, 0, 0.5);
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { filter: brightness(1) contrast(1); }
+            50% { filter: brightness(1.3) contrast(1.2); }
+        }
+        
+        .subtitle {
+            text-align: center;
+            font-size: 12px;
+            letter-spacing: 6px;
+            color: rgba(255, 215, 0, 0.6);
+            margin-bottom: 80px;
+            text-transform: uppercase;
+            font-weight: 200;
+            animation: fadeIn 1s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 100px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 16px 40px;
+            background: transparent;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            color: rgba(255, 215, 0, 0.7);
+            cursor: none;
+            font-size: 11px;
+            letter-spacing: 3px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            font-weight: 300;
+            position: relative;
+            overflow: hidden;
+            clip-path: polygon(10% 0%, 100% 0%, 90% 100%, 0% 100%);
+        }
+        
+        .filter-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            transition: all 0.6s ease;
+        }
+        
+        .filter-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .filter-btn:hover {
+            border-color: #ffd700;
+            color: #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4), inset 0 0 30px rgba(255, 215, 0, 0.1);
+            transform: translateY(-3px);
+        }
+        
+        .filter-btn.active {
+            background: rgba(255, 215, 0, 0.15);
+            border-color: #ffd700;
+            color: #ffd700;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.5), inset 0 0 40px rgba(255, 215, 0, 0.2);
+        }
+        
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 40px;
+            perspective: 1000px;
+        }
+        
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            cursor: none;
+            aspect-ratio: 3/4;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #0a0a0a;
+            opacity: 0;
+            transform: translateY(50px);
+            animation: itemFadeIn 0.8s ease forwards;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+        
+        @keyframes itemFadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .gallery-item::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 215, 0, 0.3) 50%, transparent 70%);
+            transform: rotate(45deg);
+            transition: all 0.8s;
+            z-index: 3;
+            opacity: 0;
+        }
+        
+        .gallery-item:hover::before {
+            opacity: 1;
+            animation: shine 1.5s ease-in-out;
+        }
+        
+        @keyframes shine {
+            from { left: -50%; }
+            to { left: 150%; }
+        }
+        
+        .gallery-item::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, transparent 50%, rgba(255, 215, 0, 0.2) 100%);
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 2;
+        }
+        
+        .gallery-item:hover::after { opacity: 1; }
+        
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: grayscale(30%) brightness(0.8) blur(0.5px);
+        }
+        
+        .gallery-item:hover {
+            transform: translateY(-20px) scale(1.02);
+            box-shadow: 0 30px 80px rgba(255, 215, 0, 0.4), 0 0 100px rgba(255, 215, 0, 0.2);
+            border-color: rgba(255, 215, 0, 0.5);
+        }
+        
+        .gallery-item:hover img {
+            transform: scale(1.2) rotate(2deg);
+            filter: grayscale(0%) brightness(1.1) blur(0px);
+        }
+        
+        .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.8) 60%, transparent 100%);
+            padding: 40px 30px;
+            transform: translateY(100%);
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 4;
+            border-top: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .gallery-item:hover .overlay { transform: translateY(0); }
+        
+        .overlay h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #ffd700;
+            letter-spacing: 2px;
+            font-weight: 300;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        
+        .overlay p {
+            font-size: 10px;
+            color: rgba(255, 215, 0, 0.7);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            font-weight: 200;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.98);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+        }
+        
+        .modal.active { display: flex; }
+        
+        .modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90vh;
+            animation: modalZoom 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 0 100px rgba(255, 215, 0, 0.5));
+        }
+        
+        @keyframes modalZoom {
+            from { transform: scale(0.7) rotate(-5deg); opacity: 0; }
+            to { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        
+        .modal-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .close, .prev, .next {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 215, 0, 0.5);
+            color: #ffd700;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 20px 25px;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+            font-weight: 200;
+            clip-path: polygon(0% 0%, 90% 0%, 100% 10%, 100% 100%, 10% 100%, 0% 90%);
+            z-index: 10001;
+        }
+        
+        .close:hover, .prev:hover, .next:hover {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: #ffd700;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+            transform: scale(1.1);
+        }
+        
+        .close { top: 40px; right: 40px; }
+        .prev { left: 40px; top: 50%; transform: translateY(-50%); }
+        .next { right: 40px; top: 50%; transform: translateY(-50%); }
+        
+        @media (max-width: 768px) {
+            body { cursor: auto; }
+            #cursor, #cursor-glow { display: none; }
+            h1 { font-size: 3rem; letter-spacing: 6px; }
+            .gallery { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+            .filter-btn { padding: 14px 30px; font-size: 10px; clip-path: none; }
+            .container { padding: 60px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="cursor"></div>
+    <div id="cursor-glow"></div>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <h1>LUMIÈRE</h1>
+        <div class="subtitle">A Visual Symphony</div>
+        
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Tout</button>
+            <button class="filter-btn" data-filter="nature">Nature</button>
+            <button class="filter-btn" data-filter="urban">Urban</button>
+            <button class="filter-btn" data-filter="abstract">Abstract</button>
+            <button class="filter-btn" data-filter="portrait">Portrait</button>
+        </div>
+        
+        <div class="gallery" id="gallery"></div>
+    </div>
+    
+    <div class="modal" id="modal">
+        <button class="close" onclick="closeModal()">✕</button>
+        <button class="prev" onclick="changeImage(-1)">‹</button>
+        <button class="next" onclick="changeImage(1)">›</button>
+        <div class="modal-content">
+            <img id="modalImg" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        // Custom Cursor
+        const cursor = document.getElementById('cursor');
+        const cursorGlow = document.getElementById('cursor-glow');
+        
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            cursorGlow.style.left = (e.clientX - 150) + 'px';
+            cursorGlow.style.top = (e.clientY - 150) + 'px';
+        });
+        
+        document.querySelectorAll('.gallery-item, .filter-btn, .close, .prev, .next').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                cursor.style.transform = 'scale(2)';
+                cursor.style.borderColor = '#ffd700';
+            });
+            el.addEventListener('mouseleave', () => {
+                cursor.style.transform = 'scale(1)';
+                cursor.style.borderColor = 'rgba(255, 215, 0, 0.8)';
+            });
+        });
+        
+        // Particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+            particle.style.animationDelay = Math.random() * 5 + 's';
+            particlesContainer.appendChild(particle);
+        }
+        
+        const images = [
+            { src: 'https://picsum.photos/700/900?random=1', category: 'nature', title: 'Ethereal Woods' },
+            { src: 'https://picsum.photos/700/900?random=2', category: 'urban', title: 'Neon Dreams' },
+            { src: 'https://picsum.photos/700/900?random=3', category: 'abstract', title: 'Golden Cascade' },
+            { src: 'https://picsum.photos/700/900?random=4', category: 'portrait', title: 'Soul Whispers' },
+            { src: 'https://picsum.photos/700/900?random=5', category: 'nature', title: 'Morning Mist' },
+            { src: 'https://picsum.photos/700/900?random=6', category: 'urban', title: 'Glass Kingdom' },
+            { src: 'https://picsum.photos/700/900?random=7', category: 'abstract', title: 'Liquid Light' },
+            { src: 'https://picsum.photos/700/900?random=8', category: 'portrait', title: 'Silent Echo' },
+            { src: 'https://picsum.photos/700/900?random=9', category: 'nature', title: 'Velvet Horizon' },
+            { src: 'https://picsum.photos/700/900?random=10', category: 'urban', title: 'Chrome Nights' },
+            { src: 'https://picsum.photos/700/900?random=11', category: 'abstract', title: 'Amber Flow' },
+            { src: 'https://picsum.photos/700/900?random=12', category: 'portrait', title: 'Raw Grace' }
+        ];
+        
+        let currentIndex = 0;
+        let filteredImages = [...images];
+        
+        function renderGallery(filter = 'all') {
+            const gallery = document.getElementById('gallery');
+            filteredImages = filter === 'all' ? images : images.filter(img => img.category === filter);
+            
+            gallery.innerHTML = filteredImages.map((img, idx) => `
+                <div class="gallery-item" onclick="openModal(${idx})" style="animation-delay: ${idx * 0.1}s">
+                    <img src="${img.src}" alt="${img.title}">
+                    <div class="overlay">
+                        <h3>${img.title}</h3>
+                        <p>${img.category}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function openModal(index) {
+            currentIndex = index;
+            document.getElementById('modal').classList.add('active');
+            document.getElementById('modalImg').src = filteredImages[index].src;
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+        
+        function changeImage(direction) {
+            currentIndex = (currentIndex + direction + filteredImages.length) % filteredImages.length;
+            document.getElementById('modalImg').src = filteredImages[currentIndex].src;
+        }
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                renderGallery(e.target.dataset.filter);
+            });
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            const modal = document.getElementById('modal');
+            if (modal.classList.contains('active')) {
+                if (e.key === 'Escape' || e.key === 'Esc') {
+                    e.preventDefault();
+                    closeModal();
+                }
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    changeImage(-1);
+                }
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    changeImage(1);
+                }
+            }
+        });
+        
+        renderGallery();
+    </script>
+</body>
+</html>
